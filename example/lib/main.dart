@@ -31,8 +31,7 @@ class UfidHomeScreen extends StatefulWidget {
 }
 
 class _UfidHomeScreenState extends State<UfidHomeScreen> {
-  String? _ufid;
-  bool? _isReinstalled;
+  UfidInfo? _ufidInfo;
   String _platformVersion = 'Unknown';
   bool _isLoading = true;
   String? _errorMessage;
@@ -57,8 +56,7 @@ class _UfidHomeScreenState extends State<UfidHomeScreen> {
 
       setState(() {
         _platformVersion = platformVersion;
-        _ufid = info.ufid;
-        _isReinstalled = info.isReinstalled;
+        _ufidInfo = info;
         _isLoading = false;
       });
     } on PlatformException catch (e) {
@@ -101,7 +99,7 @@ class _UfidHomeScreenState extends State<UfidHomeScreen> {
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Copied UFID to clipboard!')),
+      const SnackBar(content: Text('Copied to clipboard!')),
     );
   }
 
@@ -136,6 +134,8 @@ class _UfidHomeScreenState extends State<UfidHomeScreen> {
                   const SizedBox(height: 16),
                   _buildUfidCard(),
                   const SizedBox(height: 16),
+                  _buildPlatformSpecificCard(),
+                  const SizedBox(height: 16),
                   _buildPlatformCard(),
                   const SizedBox(height: 24),
                   FilledButton.icon(
@@ -159,7 +159,7 @@ class _UfidHomeScreenState extends State<UfidHomeScreen> {
   }
 
   Widget _buildStatusCard() {
-    final isReinstalled = _isReinstalled ?? false;
+    final isReinstalled = _ufidInfo?.isReinstalled ?? false;
     return Card(
       elevation: 2,
       child: Padding(
@@ -204,7 +204,7 @@ class _UfidHomeScreenState extends State<UfidHomeScreen> {
   }
 
   Widget _buildUfidCard() {
-    final ufid = _ufid ?? 'N/A';
+    final ufid = _ufidInfo?.ufid ?? 'N/A';
     return Card(
       elevation: 2,
       child: Padding(
@@ -237,6 +237,104 @@ class _UfidHomeScreenState extends State<UfidHomeScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPlatformSpecificCard() {
+    final info = _ufidInfo;
+    if (info == null) return const SizedBox.shrink();
+
+    if (info.isAndroid && info.android != null) {
+      final android = info.android!;
+      return Card(
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.android, color: Colors.green),
+                  SizedBox(width: 8),
+                  Text(
+                    'Android Native Details',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              _buildDetailRow('Android ID', android.androidId),
+              const SizedBox(height: 8),
+              _buildDetailRow('Retrieval API', android.retrievalMethod),
+              const SizedBox(height: 4),
+              const Text(
+                '• No PackageManager used\n• Queried via deep SettingsProvider IPC',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (info.isIOS && info.ios != null) {
+      final ios = info.ios!;
+      return Card(
+        elevation: 2,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.apple, color: Colors.black87),
+                  SizedBox(width: 8),
+                  Text(
+                    'iOS Native Details',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              const Divider(height: 20),
+              _buildDetailRow('Keychain UUID', ios.keychainUuid),
+              const SizedBox(height: 8),
+              _buildDetailRow('Keychain Service', ios.service),
+              const SizedBox(height: 8),
+              _buildDetailRow('Keychain Account', ios.account),
+              const SizedBox(height: 4),
+              const Text(
+                '• Stored in Security.framework Keychain\n• Persists across uninstalls',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+        const SizedBox(height: 2),
+        SelectableText(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
     );
   }
 

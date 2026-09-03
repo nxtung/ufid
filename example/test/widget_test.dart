@@ -23,6 +23,9 @@ void main() {
             return {
               'ufid': 'mock-device-id-123',
               'isReinstalled': false,
+              'platform': 'android',
+              'androidId': 'mock-device-id-123',
+              'retrievalMethod': 'ipc_call',
             };
           default:
             return null;
@@ -43,6 +46,8 @@ void main() {
 
     expect(find.text('UFID Demo App'), findsOneWidget);
     expect(find.text('FIRST-TIME INSTALL'), findsOneWidget);
-    expect(find.text('mock-device-id-123'), findsOneWidget);
+    // Displayed in both UFID card and Android Native Details card
+    expect(find.text('mock-device-id-123'), findsNWidgets(2));
+    expect(find.text('Android Native Details'), findsOneWidget);
   });
 }

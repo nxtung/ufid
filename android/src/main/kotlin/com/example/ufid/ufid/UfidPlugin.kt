@@ -40,18 +40,23 @@ class UfidPlugin : FlutterPlugin, MethodCallHandler {
                 result.success("Android ${Build.VERSION.RELEASE}")
             }
             "getUFID" -> {
-                val ufid = getDeepAndroidId(appContext)
+                val (ufid, _) = getDeepAndroidId(appContext)
                 result.success(ufid)
             }
             "isReinstalled" -> {
-                val (_, isReinstalled) = getInstallInfo(appContext)
+                val (ufid, _) = getDeepAndroidId(appContext)
+                val isReinstalled = checkAndRecordInstall(appContext, ufid)
                 result.success(isReinstalled)
             }
             "getInfo" -> {
-                val (ufid, isReinstalled) = getInstallInfo(appContext)
+                val (ufid, retrievalMethod) = getDeepAndroidId(appContext)
+                val isReinstalled = checkAndRecordInstall(appContext, ufid)
                 val map = mapOf(
                     "ufid" to ufid,
-                    "isReinstalled" to isReinstalled
+                    "isReinstalled" to isReinstalled,
+                    "platform" to "android",
+                    "androidId" to ufid,
+                    "retrievalMethod" to retrievalMethod
                 )
                 result.success(map)
             }
@@ -67,11 +72,9 @@ class UfidPlugin : FlutterPlugin, MethodCallHandler {
 
     /**
      * Retrieves Android ID using deep APIs in android.provider.Settings.
-     * 1. Direct ContentResolver IPC Call ("GET_secure") to SettingsProvider.
-     * 2. Direct ContentResolver Cursor Query on Settings.Secure.CONTENT_URI.
-     * 3. Settings.Secure.getString fallback.
+     * Returns Pair(androidId, retrievalMethod).
      */
-    private fun getDeepAndroidId(ctx: Context): String {
+    private fun getDeepAndroidId(ctx: Context): Pair<String, String> {
         // Level 1: Deep IPC call to SettingsProvider via ContentResolver.call
         try {
             val uri = Settings.Secure.CONTENT_URI
@@ -83,7 +86,7 @@ class UfidPlugin : FlutterPlugin, MethodCallHandler {
             )
             val value = bundle?.getString("value")
             if (!value.isNullOrBlank()) {
-                return value
+                return Pair(value, "ipc_call")
             }
         } catch (_: Throwable) {
             // Proceed to level 2
@@ -104,7 +107,7 @@ class UfidPlugin : FlutterPlugin, MethodCallHandler {
                     if (colIndex != -1) {
                         val value = it.getString(colIndex)
                         if (!value.isNullOrBlank()) {
-                            return value
+                            return Pair(value, "cursor_query")
                         }
                     }
                 }
@@ -120,21 +123,19 @@ class UfidPlugin : FlutterPlugin, MethodCallHandler {
                 Settings.Secure.ANDROID_ID
             )
             if (!value.isNullOrBlank()) {
-                return value
+                return Pair(value, "settings_secure")
             }
         } catch (_: Throwable) {
             // Ignored
         }
 
-        return ""
+        return Pair("", "unknown")
     }
 
     /**
      * Identifies whether the current launch is a re-installation or fresh install.
      */
-    private fun getInstallInfo(ctx: Context): Pair<String, Boolean> {
-        val ufid = getDeepAndroidId(ctx)
-
+    private fun checkAndRecordInstall(ctx: Context, ufid: String): Boolean {
         val localPrefs: SharedPreferences = ctx.getSharedPreferences("ufid_local_state", Context.MODE_PRIVATE)
         val backupPrefs: SharedPreferences = ctx.getSharedPreferences("ufid_persistent_backup", Context.MODE_PRIVATE)
 
@@ -162,7 +163,7 @@ class UfidPlugin : FlutterPlugin, MethodCallHandler {
             isReinstalled = localPrefs.getBoolean("was_reinstalled", false)
         }
 
-        return Pair(ufid, isReinstalled)
+        return isReinstalled
     }
 
     /**

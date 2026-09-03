@@ -3,8 +3,8 @@ import UIKit
 import Security
 
 public class UfidPlugin: NSObject, FlutterPlugin {
-  private static let keychainService = Bundle.main.bundleIdentifier ?? "com.ufid.plugin"
-  private static let keychainAccount = "ufid_persistent_device_identifier"
+  public static let keychainService = Bundle.main.bundleIdentifier ?? "com.ufid.plugin"
+  public static let keychainAccount = "ufid_persistent_device_identifier"
   private static let userDefaultsLaunchKey = "ufid_has_launched_before"
   private static let userDefaultsReinstalledKey = "ufid_was_reinstalled"
 
@@ -26,7 +26,14 @@ public class UfidPlugin: NSObject, FlutterPlugin {
       result(info.isReinstalled)
     case "getInfo":
       let info = getOrCreateUfidInfo()
-      result(["ufid": info.ufid, "isReinstalled": info.isReinstalled])
+      result([
+        "ufid": info.ufid,
+        "isReinstalled": info.isReinstalled,
+        "platform": "ios",
+        "keychainUuid": info.ufid,
+        "keychainService": UfidPlugin.keychainService,
+        "keychainAccount": UfidPlugin.keychainAccount
+      ])
     case "reset":
       let success = resetAll()
       result(success)

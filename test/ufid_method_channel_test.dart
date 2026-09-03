@@ -24,6 +24,9 @@ void main() {
             return {
               'ufid': 'mock-android-id-999',
               'isReinstalled': true,
+              'platform': 'android',
+              'androidId': 'mock-android-id-999',
+              'retrievalMethod': 'ipc_call',
             };
           case 'reset':
             return true;
@@ -51,10 +54,13 @@ void main() {
     expect(await platform.isReinstalled(), true);
   });
 
-  test('getInfo calls channel and parses UfidInfo', () async {
+  test('getInfo calls channel and parses UfidInfo with Android details', () async {
     final info = await platform.getInfo();
     expect(info.ufid, 'mock-android-id-999');
     expect(info.isReinstalled, true);
+    expect(info.isAndroid, true);
+    expect(info.androidId, 'mock-android-id-999');
+    expect(info.android?.retrievalMethod, 'ipc_call');
   });
 
   test('reset calls channel', () async {

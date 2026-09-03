@@ -41,18 +41,39 @@ flutter pub get
 ## 2. Các Lớp & Đối Tượng Dữ Liệu (Classes & Models)
 
 ### `class UfidInfo`
-Đối tượng chứa thông tin tổng hợp về định danh thiết bị và trạng thái cài đặt.
+Đối tượng chứa thông tin tổng hợp về định danh thiết bị, trạng thái cài đặt và dữ liệu riêng biệt cho Android/iOS.
 
-#### Các thuộc tính (Properties):
+#### Các thuộc tính chính (Properties):
 | Thuộc tính | Kiểu dữ liệu | Mô tả |
 | :--- | :--- | :--- |
-| `ufid` | `String` | Mã định danh duy nhất của thiết bị. Trên Android là `ANDROID_ID`, trên iOS là UUID lưu trong Keychain. |
-| `isReinstalled` | `bool` | `true` nếu ứng dụng đã từng được cài đặt trên thiết bị này trước đó và vừa được cài đặt lại; `false` nếu là lần cài đặt đầu tiên. |
+| `ufid` | `String` | Mã định danh duy nhất của thiết bị (Android ID trên Android, Keychain UUID trên iOS). |
+| `isReinstalled` | `bool` | `true` nếu ứng dụng vừa được cài đặt lại; `false` nếu là lần cài đặt đầu tiên. |
+| `platform` | `String` | Nền tảng hệ điều hành: `'android'`, `'ios'`, hoặc `'unknown'`. |
+| `isAndroid` | `bool` | `true` nếu đang chạy trên Android. |
+| `isIOS` | `bool` | `true` nếu đang chạy trên iOS. |
+| `androidId` | `String?` | Getter tiện lợi lấy trực tiếp `ANDROID_ID` (có sẵn trên Android). |
+| `keychainUuid` | `String?` | Getter tiện lợi lấy trực tiếp `keychainUuid` (có sẵn trên iOS). |
+| `android` | `AndroidUfidInfo?` | Đối tượng chứa thông tin chi tiết dành riêng cho Android. |
+| `ios` | `IosUfidInfo?` | Đối tượng chứa thông tin chi tiết dành riêng cho iOS. |
 
-#### Các phương thức (Methods):
-- `Map<String, dynamic> toMap()`: Chuyển đổi đối tượng sang `Map`.
-- `factory UfidInfo.fromMap(Map<dynamic, dynamic> map)`: Khởi tạo đối tượng từ `Map`.
-- `String toString()`: Chuỗi biểu diễn thông tin đối tượng.
+---
+
+### `class AndroidUfidInfo` (Dành riêng cho Android)
+Thông tin chi tiết được trả về khi chạy trên nền tảng Android:
+| Thuộc tính | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| `androidId` | `String` | Giá trị `ANDROID_ID` của thiết bị (`Settings.Secure.ANDROID_ID`). |
+| `retrievalMethod` | `String` | Phương thức native đã lấy thành công ID (`ipc_call`, `cursor_query`, hoặc `settings_secure`). |
+
+---
+
+### `class IosUfidInfo` (Dành riêng cho iOS)
+Thông tin chi tiết được trả về khi chạy trên nền tảng iOS:
+| Thuộc tính | Kiểu dữ liệu | Mô tả |
+| :--- | :--- | :--- |
+| `keychainUuid` | `String` | Mã UUID bền vững được lưu trữ trong iOS Keychain. |
+| `service` | `String` | Keychain Service identifier (mặc định là Bundle Identifier của ứng dụng). |
+| `account` | `String` | Keychain Account identifier (`ufid_persistent_device_identifier`). |
 
 ---
 
